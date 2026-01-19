@@ -78,11 +78,13 @@ function openModal({ title, bodyHtml, footerHtml, onClose }) {
 }
 
 function closeModal() {
-  // run custom close handler FIRST
+  // run optional onClose if provided
   if (modalOnClose) {
     const fn = modalOnClose;
     modalOnClose = null;
     fn();
+  } else {
+    modalOnClose = null;
   }
 
   modalOverlay.classList.add("hidden");
@@ -571,168 +573,77 @@ function renderGame(id) {
   if (timerInterval) clearInterval(timerInterval);
   timerInterval = setInterval(renderTimer, 250);
 
-$("#endGame").onclick = () => {
-  // 1) STOP TIMER immediately (game ended already)
-  if (timerInterval) {
-    clearInterval(timerInterval);
-    timerInterval = null;
-  }
-
-  // 2) Mark ending state
-  session.currentGame = session.currentGame || { startedAtMs };
-  session.currentGame.endedAtMs = Date.now();
-  updateSession(session);
-
-  // helper: end game WITHOUT saving record
-  const endWithoutSaving = () => {
-    // clear game state and go back session
-    const fresh = getSession(session.id); // reload latest
-    if (!fresh) return;
-    delete fresh.currentGame;
-    updateSession(fresh);
-    location.hash = `#/session/${fresh.id}`;
-  };
-
-  // 3) Open modal with onClose = end without saving
-  openModal({
-    title: "End Game — Enter Results",
-    bodyHtml: `
-    <p class="p" style="margin-bottom:10px;">
-    Enter results for each player.
-    <br/>Rule: Winner must have <strong>0</strong> remaining cards (exactly one winner).
-  </p>
-
-  <div class="card section" style="background:rgba(0,0,0,.12); border-radius:16px;">
-    <div class="grid" style="gap:10px;">
-      ${session.players.map((p,i)=>`
-        <div class="card section" style="background:rgba(0,0,0,.10); border-radius:16px;">
-          <div class="spread" style="margin-bottom:8px;">
-            <div><strong>${escapeHtml(p.name)}</strong></div>
-            <span class="pill">Player ${i+1}</span>
-          </div>
-
-          <div class="grid two">
-            <div>
-              <label>Remaining cards</label>
-              <input class="input" type="number" min="0" max="52" step="1"
-                     id="rem_${p.id}" value="3">
-            </div>
-
-            <div>
-              <label>同花顺 count</label>
-              <input class="input" type="number" min="0" max="50" step="1"
-                     id="sf_${p.id}" value="0">
-            </div>
-
-            <div>
-              <label>金刚 count</label>
-              <input class="input" type="number" min="0" max="50" step="1"
-                     id="kk_${p.id}" value="0">
-            </div>
-
-            <div>
-              <label>Notes (optional)</label>
-              <input class="input" id="note_${p.id}" placeholder="e.g. went out fast" />
-            </div>
-          </div>
-        </div>
-      `).join("")}
-    </div>
-  </div>
-
-  <div class="hr"></div>
-
-  <p class="p">
-    Settlement rules:
-    <br/>• Loser → Winner: <code>baseBet + remainingCards * betPerCard</code>
-    <br/>• Among losers: higher remaining pays lower remaining:
-      <code>(remainingDiff) * betPerCard</code>
-    <br/>• Specials: each 同花顺 / 金刚 earns from each other player.
-  </p>
-    `,
-    footerHtml: `
-      <button class="btn ghost" id="mDiscard">Discard & End</button>
-      <button class="btn primary" id="mCompute">Save Record</button>
-    `,
-    onClose: endWithoutSaving   // ✅ closing X / tap outside / ESC will end game
-  });
-
-  // Discard button
-  $("#mDiscard").onclick = () => {
-    // IMPORTANT: prevent onClose from double-running
-    modalOnClose = null;
-    closeModal(); // closes UI
-    endWithoutSaving(); // end game
-  };
-
-  // Save record button (your existing compute logic)
-  $("#mCompute").onclick = () => {
-    // prevent modal onClose from doing discard
-    modalOnClose = null;
-  
-    const stats = {};
-    for (const p of session.players) {
-      stats[p.id] = {
-        remainingCards: clampInt($("#rem_" + p.id).value, 0, 52),
-        sfCount: clampInt($("#sf_" + p.id).value, 0, 50),
-        kkCount: clampInt($("#kk_" + p.id).value, 0, 50),
-        note: ($("#note_" + p.id).value || "").trim()
-      };
-    }
-  
-    const res = calcGameDeltas({
-      players: session.players,
-      baseBet: session.rules.baseBet,
-      betPerCard: session.rules.betPerCard,
-      rewardSF: session.rules.rewardSF,
-      rewardKK: session.rules.rewardKK,
-      stats
-    });
-  
-    if (res.error) { alert(res.error); return; }
-  
-    // Apply balances
-    session.players = session.players.map(p => ({
-      ...p,
-      balance: clampMoney((p.balance ?? 0) + (res.deltas[p.id] ?? 0))
-    }));
-  
-    // Save record
-    session.games = session.games || [];
-    session.games.push({
-      id: uid(),
-      endedAt: nowStamp(),
-      winnerId: res.winnerId,
-      deltas: res.deltas,
-      stats
-    });
-  
-    delete session.currentGame;
-  
-    updateSession(session);   // ✅ persist
-  
-    closeModal();
-  
-    // ✅ force render session immediately
-    location.hash = `#/session/${session.id}`;
-    render();
-  };
-  
-};
-
-
+  $("#endGame").onclick = () => {
+    // ✅ Do NOT end game here
+    // ✅ Do NOT stop timer here
+    // ✅ Just open the modal for data entry
     openModal({
       title: "End Game — Enter Results",
-      bodyHtml: body,
+      bodyHtml: `
+        <p class="p" style="margin-bottom:10px;">
+          Enter results for each player.
+          <br/>Rule: Winner must have <strong>0</strong> remaining cards (exactly one winner).
+        </p>
+  
+        <div class="card section" style="background:rgba(0,0,0,.12); border-radius:16px;">
+          <div class="grid" style="gap:10px;">
+            ${session.players.map((p, i) => `
+              <div class="card section" style="background:rgba(0,0,0,.10); border-radius:16px;">
+                <div class="spread" style="margin-bottom:8px;">
+                  <div><strong>${escapeHtml(p.name)}</strong></div>
+                  <span class="pill">Player ${i + 1}</span>
+                </div>
+  
+                <div class="grid two">
+                  <div>
+                    <label>Remaining cards</label>
+                    <input class="input" type="number" min="0" max="52" step="1"
+                          id="rem_${p.id}" value="3">
+                  </div>
+  
+                  <div>
+                    <label>同花顺 count</label>
+                    <input class="input" type="number" min="0" max="50" step="1"
+                          id="sf_${p.id}" value="0">
+                  </div>
+  
+                  <div>
+                    <label>金刚 count</label>
+                    <input class="input" type="number" min="0" max="50" step="1"
+                          id="kk_${p.id}" value="0">
+                  </div>
+  
+                  <div>
+                    <label>Notes (optional)</label>
+                    <input class="input" id="note_${p.id}" placeholder="e.g. went out fast" />
+                  </div>
+                </div>
+              </div>
+            `).join("")}
+          </div>
+        </div>
+  
+        <div class="hr"></div>
+        <p class="p">
+          Settlement rules:
+          <br/>• Loser → Winner: <code>baseBet + remainingCards * betPerCard</code>
+          <br/>• Among losers: higher remaining pays lower remaining:
+            <code>(remainingDiff) * betPerCard</code>
+          <br/>• Specials: each 同花顺 / 金刚 earns from each other player.
+        </p>
+      `,
       footerHtml: `
-        <button class="btn ghost" id="mCancel">Cancel</button>
+        <button class="btn ghost" id="mClose">Close</button>
         <button class="btn primary" id="mCompute">Save Record</button>
-      `
+      `,
+      onClose: null // ✅ closing the modal does NOTHING
     });
-
-    $("#mCancel").onclick = closeModal;
-
+  
+    $("#mClose").onclick = closeModal;
+  
     $("#mCompute").onclick = () => {
+      // ✅ ONLY HERE the game ends and record is saved
+  
       const stats = {};
       for (const p of session.players) {
         stats[p.id] = {
@@ -742,7 +653,7 @@ $("#endGame").onclick = () => {
           note: ($("#note_" + p.id).value || "").trim()
         };
       }
-
+  
       const res = calcGameDeltas({
         players: session.players,
         baseBet: session.rules.baseBet,
@@ -751,23 +662,15 @@ $("#endGame").onclick = () => {
         rewardKK: session.rules.rewardKK,
         stats
       });
-
-      if (res.error) {
-        alert(res.error);
-        return;
-      }
-
-      if (res.sum !== 0) {
-        // should be 0, but float rounding might be tiny
-        // we keep it anyway; balances will still be consistent
-      }
-
+  
+      if (res.error) { alert(res.error); return; }
+  
       // Apply balances
       session.players = session.players.map(p => ({
         ...p,
         balance: clampMoney((p.balance ?? 0) + (res.deltas[p.id] ?? 0))
       }));
-
+  
       // Save game record
       session.games = session.games || [];
       session.games.push({
@@ -779,19 +682,25 @@ $("#endGame").onclick = () => {
         deltas: res.deltas,
         stats
       });
-
+  
+      // ✅ END GAME NOW
       delete session.currentGame;
       updateSession(session);
-
+  
+      // stop timer and go back
+      if (timerInterval) {
+        clearInterval(timerInterval);
+        timerInterval = null;
+      }
+  
       closeModal();
-      clearInterval(timerInterval);
-      timerInterval = null;
-
       location.hash = `#/session/${session.id}`;
+      render();
     };
   };
+};  
 /** ---------- Boot ---------- **/
-(function init() {
-  if (!location.hash) location.hash = "#/";
-  render();
-})();
+  (function init() {
+    if (!location.hash) location.hash = "#/";
+    render();
+  })();
