@@ -225,9 +225,19 @@
     overflow: hidden;                 /* body will scroll instead */
   }
 
-  .modal-header, .modal-footer{
-    flex: 0 0 auto;
+  .modal-header{
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background: #0b1220;
   }
+  .modal-footer{
+    position: sticky;
+    bottom: 0;
+    z-index: 2;
+    background: #0b1220;
+  }
+  
   .modal-body{
   padding: 16px;
   overflow-y: auto;
