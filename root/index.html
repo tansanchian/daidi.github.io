@@ -1,14 +1,40 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <title>Daidi</title>
-    <link rel="stylesheet" href="style.css" />
-  </head>
-  <body>
-    <h1 id="title">Hello</h1>
-    <button onclick="changeText()">Click me</button>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>锄大地 Session Tracker</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <div class="logo">♠</div>
+      <div>
+        <div class="title">锄大地</div>
+        <div class="subtitle">Session & Settlement Tracker</div>
+      </div>
+    </div>
+    <div class="topbar-actions">
+      <button id="btnHome" class="btn ghost">Home</button>
+      <button id="btnReset" class="btn ghost danger">Reset All</button>
+    </div>
+  </header>
 
-    <script src="script.js"></script>
-  </body>
+  <main id="app" class="container"></main>
+
+  <!-- Modal -->
+  <div id="modalOverlay" class="modal-overlay hidden" aria-hidden="true">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+      <div class="modal-header">
+        <h3 id="modalTitle">Modal</h3>
+        <button id="modalClose" class="icon-btn" aria-label="Close">✕</button>
+      </div>
+      <div id="modalBody" class="modal-body"></div>
+      <div id="modalFooter" class="modal-footer"></div>
+    </div>
+  </div>
+
+  <script src="./app.js"></script>
+</body>
 </html>
