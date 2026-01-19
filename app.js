@@ -492,13 +492,13 @@ function renderSession(id) {
   // Games list
   const gamesList = $("#gamesList");
   if (!session.games || session.games.length === 0) {
-    gamesList.innerHTML = `<p class="p">No games recorded yet. Click “Start New Game”.</p>`;
+    gamesList.innerHTML = `<p class="p">No games recorded yet. Click "Start New Game".</p>`;
   } else {
     gamesList.innerHTML = `
       <table class="table">
         <thead>
           <tr>
-            <th>#</th><th>Time</th><th>Winner</th><th>Deltas</th>
+            <th>#</th><th>Time</th><th>Winner</th><th>Deltas</th><th></th>
           </tr>
         </thead>
         <tbody>
@@ -516,12 +516,51 @@ function renderSession(id) {
                 <td>${escapeHtml(g.endedAt)}</td>
                 <td>${escapeHtml(winnerName)}</td>
                 <td>${deltasHtml}</td>
+                <td><button class="btn ghost danger" data-delete="${g.id}" style="font-size:0.85rem;">Delete</button></td>
               </tr>
             `;
           }).join("")}
         </tbody>
       </table>
     `;
+
+    // Add delete event listeners
+    gamesList.querySelectorAll("button[data-delete]").forEach(btn => {
+      btn.onclick = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const gameId = btn.dataset.delete;
+        
+        openModal({
+          title: "Delete this game record?",
+          bodyHtml: `<p class="p">This will remove the record and recalculate all player balances automatically.</p>`,
+          footerHtml: `
+            <button class="btn ghost" id="mCancel">Cancel</button>
+            <button class="btn danger" id="mConfirm">Delete</button>
+          `
+        });
+        
+        $("#mCancel").onclick = closeModal;
+        $("#mConfirm").onclick = () => {
+          // Remove the game record
+          session.games = session.games.filter(g => g.id !== gameId);
+          
+          // Recalculate balances by replaying all games
+          session.players = session.players.map(p => ({...p, balance: 0}));
+          
+          for (const game of session.games) {
+            for (const p of session.players) {
+              const delta = game.deltas[p.id] ?? 0;
+              p.balance = clampMoney(p.balance + delta);
+            }
+          }
+          
+          updateSession(session);
+          closeModal();
+          renderSession(session.id);
+        };
+      };
+    });
   }
 }
 
