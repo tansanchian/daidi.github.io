@@ -206,39 +206,33 @@
   
   .modal-overlay{
     position: fixed;
-    inset:0;
-    background: rgba(0,0,0,.55);
-    display:flex;
-    align-items:center;
-    justify-content:center;
+    inset: 0;
+    z-index: 9999;
+    background: #060a12;         
+    display: flex;
+    align-items: center;
+    justify-content: center;
     padding: 16px;
   }
+  
   .hidden{ display:none !important; }
   
   .modal{
     width: min(980px, 100%);
-    background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
-    border: 1px solid var(--border);
-    border-radius: 18px;
-    box-shadow: var(--shadow);
-    overflow:hidden;
+    max-height: calc(100vh - 32px);   /* important */
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;                 /* body will scroll instead */
   }
-  .modal-header{
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    padding: 14px 16px;
-    border-bottom: 1px solid var(--border);
+
+  .modal-header, .modal-footer{
+    flex: 0 0 auto;
   }
-  .modal-body{ padding: 16px; }
-  .modal-footer{
-    padding: 14px 16px;
-    border-top: 1px solid var(--border);
-    display:flex;
-    justify-content:flex-end;
-    gap:10px;
-    flex-wrap:wrap;
-  }
+  .modal-body{
+  padding: 16px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
   .icon-btn{
     border: 1px solid var(--border);
     background: transparent;
@@ -248,4 +242,6 @@
     cursor:pointer;
   }
   .icon-btn:hover{ background: rgba(255,255,255,.08); }
-  
+  body.modal-open{
+    overflow: hidden;
+  }

@@ -70,13 +70,19 @@ function openModal({ title, bodyHtml, footerHtml }) {
   modalFooter.innerHTML = footerHtml || "";
   modalOverlay.classList.remove("hidden");
   modalOverlay.setAttribute("aria-hidden", "false");
+
+  document.body.classList.add("modal-open"); // ✅ lock background scroll
 }
+
 function closeModal() {
   modalOverlay.classList.add("hidden");
   modalOverlay.setAttribute("aria-hidden", "true");
   modalBody.innerHTML = "";
   modalFooter.innerHTML = "";
+
+  document.body.classList.remove("modal-open"); // ✅ unlock
 }
+
 modalClose.addEventListener("click", closeModal);
 modalOverlay.addEventListener("click", (e) => {
   if (e.target === modalOverlay) closeModal();
