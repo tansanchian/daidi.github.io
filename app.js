@@ -157,25 +157,44 @@ function calcGameDeltas({ players, baseBet, betPerCard, rewardSF, rewardKK, stat
     deltas[toId]   = clampMoney(deltas[toId] + a);
   };
 
-  // 2) Each loser pays winner: baseBet + remainingCards * betPerCard
+  // Multiplier rule based on remaining cards
+  function getCardMultiplier(remainingCards) {
+    const r = clampInt(remainingCards, 0, 100);
+    if (r >= 12) return 3;   // 12 or 13 -> triple
+    if (r >= 10) return 2;   // 10 or 11 -> double
+    return 1;                // otherwise normal
+  }
+
+  // 2) Each loser pays winner:
+  //    multiplier * (baseBet + remainingCards * betPerCard)
   for (const p of players) {
     const r = clampInt(stats[p.id]?.remainingCards, 0, 100);
     if (p.id === winnerId) continue;
-    transfer(p.id, winnerId, baseBet + r * betPerCard);
+
+    const multiplier = getCardMultiplier(r);
+    const amount = multiplier * (baseBet + r * betPerCard);
+    transfer(p.id, winnerId, amount);
   }
 
-  // 2b) Among losers: higher remaining pays lower remaining diff * betPerCard
+  // 2b) Among losers:
+  // higher remaining pays lower remaining diff * betPerCard
+  // using the multiplier of the payer
   const losers = players
     .filter(p => p.id !== winnerId)
     .map(p => ({ id: p.id, r: clampInt(stats[p.id]?.remainingCards, 0, 100) }));
 
-  // pairwise i<j, pay from higher r to lower r
   for (let i = 0; i < losers.length; i++) {
     for (let j = i + 1; j < losers.length; j++) {
       const A = losers[i], B = losers[j];
       if (A.r === B.r) continue;
-      if (A.r > B.r) transfer(A.id, B.id, (A.r - B.r) * betPerCard);
-      else           transfer(B.id, A.id, (B.r - A.r) * betPerCard);
+
+      if (A.r > B.r) {
+        const multiplier = getCardMultiplier(A.r);
+        transfer(A.id, B.id, multiplier * (A.r - B.r) * betPerCard);
+      } else {
+        const multiplier = getCardMultiplier(B.r);
+        transfer(B.id, A.id, multiplier * (B.r - A.r) * betPerCard);
+      }
     }
   }
 
@@ -192,7 +211,6 @@ function calcGameDeltas({ players, baseBet, betPerCard, rewardSF, rewardKK, stat
     }
   }
 
-  // sanity sum (should be 0)
   const sum = clampMoney(ids.reduce((acc, id) => acc + deltas[id], 0));
   return { winnerId, deltas, sum };
 }
